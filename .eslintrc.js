@@ -18,8 +18,9 @@ module.exports = {
       typescript: './tsconfig.json',
     },
   },
-  plugins: ['react', '@typescript-eslint'],
+  plugins: ['react', 'react-hooks', '@typescript-eslint'],
   rules: {
     'react/react-in-jsx-scope': 0,
+    'react-hooks/exhaustive-deps': 1,
   },
-}
+};

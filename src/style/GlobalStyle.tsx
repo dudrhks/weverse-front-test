@@ -1,6 +1,6 @@
-import 'the-new-css-reset/css/reset.css'
+import 'the-new-css-reset/css/reset.css';
 
-import { createGlobalStyle } from 'styled-components'
+import { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -9,7 +9,7 @@ const GlobalStyle = createGlobalStyle`
 		'Microsoft NeoGothic',  		   
 		'Droid sans', sans-serif; 
     line-height: 1.5;
-    background: #121212;
+   color:#ffffff;
   }
 `
 
