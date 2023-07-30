@@ -1,51 +1,102 @@
+import 'draft-js/dist/Draft.css';
+
+import { convertFromRaw, convertToRaw, Editor, EditorState, RichUtils } from 'draft-js';
 import { debounce } from 'lodash';
-import { ChangeEvent, useCallback, useMemo, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { styled } from 'styled-components';
 
-import { MemoItem, updateMemo } from '@/features/memoSlice';
+import { updateMemo } from '@/features/memoSlice';
 import { useAppDispatch, useAppSelector } from '@/hooks';
+import { decrypt, encrypt } from '@/utils';
+
+import MenuBar, { styleMap } from './MenuBar';
 
 interface Props {
   selected: string;
 }
 
 function Memo({ selected }: Props) {
-  const [input, setInput] = useState({ title: '', contents: '' });
-  const list = useAppSelector((state) => state.memo.list);
+  const [title, setTitle] = useState('');
+  const [contents, setContents] = useState(() => EditorState.createEmpty());
+  const [bgColor, setBgColor] = useState('#242424');
+  const editor = useRef<Editor>(null);
+
   const dispatch = useAppDispatch();
+  const list = useAppSelector((state) => state.memo.list);
 
-  const selectedMemo = useMemo(() => list?.find((x) => x.id === selected), [list, selected]);
+  const selectedMemo = useMemo(() => find(list, (x) => x.id === selected), [list, selected]);
 
-  const onChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLTextAreaElement>) => {
-      const { value, id } = e.target;
-      console.log();
-      // dispatch(updateMemo({ id: selected, text: value, type: id as keyof MemoItem }));
+  const onChangeTitle = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setTitle(value);
+  }, []);
+  const onChangeContents = useCallback((e: EditorState) => {
+    const totalLength = e.getCurrentContent().getPlainText().length;
+    if (totalLength > 1000) return;
+    setContents(e);
+  }, []);
+  const onChangeStyle = useCallback(
+    (style: string) => {
+      setContents(RichUtils.toggleInlineStyle(contents, style));
     },
-    [dispatch, selected],
+    [contents],
+  );
+  const onChangeBgColor = useCallback((color: string) => {
+    setBgColor(color);
+  }, []);
+  const handleBeforeInput = useCallback(
+    (chars: string) => {
+      const totalLength = contents.getCurrentContent().getPlainText().length + chars.length;
+      return totalLength > 1000 ? 'handled' : 'not-handled';
+    },
+    [contents],
+  );
+  const onFocus = useCallback(() => {
+    editor.current?.focus();
+  }, []);
+
+  useEffect(
+    debounce(() => {
+      if (!title && !contents) return;
+      const contentState = contents.getCurrentContent();
+      const raw = convertToRaw(contentState);
+      dispatch(updateMemo({ id: selected, title: encrypt(title), bgColor, contents: encrypt(JSON.stringify(raw)) }));
+    }, 2000),
+    [title, contents, bgColor],
   );
 
+  useEffect(() => {
+    const raw = convertFromRaw(JSON.parse(decrypt(selectedMemo?.contents ?? '')));
+    const contentState = EditorState.createWithContent(raw);
+    setTitle(decrypt(selectedMemo?.title ?? ''));
+    setContents(contentState);
+    setBgColor(selectedMemo?.bgColor ?? '#242424');
+  }, [selected]);
+
   return (
-    <Container>
+    <Container color={bgColor}>
+      <MenuBar selected={selected} onChange={onChangeStyle} onChangeBgColor={onChangeBgColor} onFocus={onFocus} />
+
       <p>저장됨: {selectedMemo?.date}</p>
       <div className="title">
-        <input placeholder="제목을 입력하세요" id="title" onChange={(e) => onChange(e)} value={selectedMemo?.title} />
+        <input placeholder="제목을 입력하세요" id="title" onChange={onChangeTitle} value={title} />
       </div>
       <div className="contents">
-        <textarea
+        <Editor
+          ref={editor}
+          customStyleMap={styleMap}
+          editorState={contents}
+          onChange={onChangeContents}
+          handleBeforeInput={handleBeforeInput}
           placeholder="내용을 입력하세요"
-          id="contents"
-          maxLength={1000}
-          onChange={onChange}
-          value={selectedMemo?.contents}
         />
       </div>
     </Container>
   );
 }
 
-const Container = styled.section`
-  background: #242424;
+const Container = styled.section<{ color?: string }>`
+  background: ${({ color }) => color ?? '#242424'};
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -71,10 +122,8 @@ const Container = styled.section`
   }
   > div.contents {
     flex: 1;
-    > textarea {
-      width: 100%;
-      height: 100%;
-      padding: 12px 32px;
+    padding: 12px 32px;
+    > div {
       font-size: 16px;
       &::placeholder {
         font-weight: 400;
