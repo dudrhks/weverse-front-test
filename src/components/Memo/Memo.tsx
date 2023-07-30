@@ -1,7 +1,7 @@
 import 'draft-js/dist/Draft.css';
 
 import { convertFromRaw, convertToRaw, Editor, EditorState, RichUtils } from 'draft-js';
-import { debounce } from 'lodash';
+import { debounce, find } from 'lodash';
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { styled } from 'styled-components';
 
@@ -123,12 +123,10 @@ const Container = styled.section<{ color?: string }>`
   > div.contents {
     flex: 1;
     padding: 12px 32px;
-    > div {
-      font-size: 16px;
-      &::placeholder {
-        font-weight: 400;
-        color: #474747;
-      }
+
+    .public-DraftEditorPlaceholder-inner {
+      font-weight: 400;
+      color: #474747;
     }
   }
 `;
