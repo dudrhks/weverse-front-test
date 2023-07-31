@@ -103,9 +103,6 @@ const Container = styled.div`
       }
     }
   }
-  .memoList {
-    padding: 12px;
-  }
 `;
 
 const Item = styled.li<{ selected?: boolean }>`
