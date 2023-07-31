@@ -123,7 +123,9 @@ const Container = styled.section<{ color?: string }>`
   > div.contents {
     flex: 1;
     padding: 12px 32px;
-
+    > div {
+      font-size: 16px;
+    }
     .public-DraftEditorPlaceholder-inner {
       font-weight: 400;
       color: #474747;

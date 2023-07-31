@@ -1,11 +1,19 @@
 import dayjs from 'dayjs';
+import { DropResult } from 'react-beautiful-dnd';
 import { v4 as uuidv4 } from 'uuid';
 
 import { encrypt } from '@/utils';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+export interface Memo {
+  id: string;
+  title: string;
+  contents: string;
+  bgColor: string;
+  date: string;
+}
 export interface MemoState {
-  list: { id: string; title: string; contents: string; bgColor: string; date: string }[];
+  list: Memo[];
 }
 
 const contents = {
@@ -66,9 +74,19 @@ export const memoSlice = createSlice({
       state.list[idx].bgColor = bgColor;
       state.list[idx].date = dayjs().format('YYYY-MM-DD HH:mm:ss');
     },
+    dragMemo: (state, action: PayloadAction<{ result: DropResult }>) => {
+      const { result } = action.payload;
+
+      if (!result.destination) return;
+      const memosCopy = [...state.list];
+      const [reorderedItem] = memosCopy.splice(result.source.index, 1);
+      memosCopy.splice(result.destination.index, 0, reorderedItem);
+
+      state.list = memosCopy;
+    },
   },
 });
 
-export const { addMemo, deleteMemo, updateMemo } = memoSlice.actions;
+export const { addMemo, deleteMemo, updateMemo, dragMemo } = memoSlice.actions;
 
 export default memoSlice.reducer;

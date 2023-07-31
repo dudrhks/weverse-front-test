@@ -1,8 +1,9 @@
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
+import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
 import { BiEdit, BiTrash } from 'react-icons/bi';
 import { styled } from 'styled-components';
 
-import { addMemo, deleteMemo } from '@/features/memoSlice';
+import { addMemo, deleteMemo, dragMemo, Memo } from '@/features/memoSlice';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 import { decrypt } from '@/utils';
 
@@ -11,12 +12,49 @@ interface Props {
   onSelected: (id: string) => void;
 }
 
+function MemoItem({ memo, index, selected, onSelected }: { memo: Memo; index: number } & Props) {
+  return (
+    <Draggable draggableId={memo.id} index={index}>
+      {(provided) => (
+        <Item
+          ref={provided.innerRef}
+          onClick={() => onSelected(memo.id)}
+          selected={selected === memo.id}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+        >
+          <p>{decrypt(memo.title) ? decrypt(memo.title) : '새로운 메모'}</p>
+          <p>
+            <span>{memo.date}</span>
+          </p>
+        </Item>
+      )}
+    </Draggable>
+  );
+}
+
+const MemoList = React.memo(function MemoList(props: Props) {
+  const list = useAppSelector((state) => state.memo.list);
+  return (
+    <>
+      {list.map((item, index) => (
+        <MemoItem memo={item} index={index} key={item.id} {...props} />
+      ))}
+    </>
+  );
+});
+
 function List({ selected, onSelected }: Props) {
   const dispatch = useAppDispatch();
-  const list = useAppSelector((state) => state.memo.list);
 
   const onAddMemo = useCallback(() => dispatch(addMemo()), [dispatch]);
   const onDeleteMemo = useCallback(() => dispatch(deleteMemo({ id: selected })), [dispatch, selected]);
+  const onDragEnd = useCallback(
+    (result: DropResult) => {
+      dispatch(dragMemo({ result }));
+    },
+    [dispatch],
+  );
 
   return (
     <Container>
@@ -28,16 +66,16 @@ function List({ selected, onSelected }: Props) {
           <BiTrash size="24" />
         </button>
       </div>
-      <ul>
-        {list?.map((item) => (
-          <Item key={item.id} onClick={() => onSelected(item.id)} selected={selected === item.id}>
-            <p>{decrypt(item.title) ? decrypt(item.title) : '새로운 메모'}</p>
-            <p>
-              <span>{item.date}</span>
-            </p>
-          </Item>
-        ))}
-      </ul>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="memos">
+          {(provided) => (
+            <ul className="memoList" ref={provided.innerRef} {...provided.droppableProps}>
+              <MemoList selected={selected} onSelected={onSelected} />
+              {provided.placeholder}
+            </ul>
+          )}
+        </Droppable>
+      </DragDropContext>
     </Container>
   );
 }
@@ -65,7 +103,7 @@ const Container = styled.div`
       }
     }
   }
-  > ul {
+  .memoList {
     padding: 12px;
   }
 `;
