@@ -15,7 +15,7 @@
 2. `yarn start` or `npm run star` 을 통해 프로젝트를 실행합니다
 3. `http://localhost:3000/`로 접속합니다
 
-## Core module version
+## 주요 모듈 버전
 | Name                  | Description           |
 | ------                | ------                |
 | node.js               | 16.15.1               |
